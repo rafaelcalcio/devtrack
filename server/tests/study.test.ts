@@ -124,6 +124,104 @@ describe('API de estudos', () => {
     expect(byPeriod.body[0].subjectName).toBe('SQL');
   });
 
+  it('atualiza os dados de um assunto de estudo', async () => {
+    const subject = await request(context.app)
+      .post('/api/study/subjects')
+      .send({ name: 'TypeScript', technology: 'TS 5' });
+
+    const response = await request(context.app)
+      .patch(`/api/study/subjects/${subject.body.id}`)
+      .send({ name: 'TypeScript avançado', technology: 'TS 6' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.name).toBe('TypeScript avançado');
+    expect(response.body.technology).toBe('TS 6');
+  });
+
+  it('não permite renomear um assunto para um nome já usado', async () => {
+    await request(context.app).post('/api/study/subjects').send({ name: 'React' });
+    const other = await request(context.app).post('/api/study/subjects').send({ name: 'SQL' });
+
+    const response = await request(context.app)
+      .patch(`/api/study/subjects/${other.body.id}`)
+      .send({ name: 'React' });
+
+    expect(response.status).toBe(409);
+    expect(response.body.error.message).toContain('Já existe');
+  });
+
+  it('atualiza uma sessão de estudo', async () => {
+    const subject = await request(context.app).post('/api/study/subjects').send({ name: 'Rust' });
+    const session = await request(context.app).post('/api/study/sessions').send({
+      subjectId: subject.body.id,
+      studiedOn: '2026-04-10',
+      durationMinutes: 30,
+    });
+
+    const response = await request(context.app)
+      .patch(`/api/study/sessions/${session.body.id}`)
+      .send({ durationMinutes: 90, notes: 'Ownership e traits' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.durationMinutes).toBe(90);
+    expect(response.body.notes).toBe('Ownership e traits');
+  });
+
+  it('retorna 404 para assunto e sessão inexistentes', async () => {
+    const subject = await request(context.app).get('/api/study/subjects/999');
+    expect(subject.status).toBe(404);
+    expect(subject.body.error.message).toBe('Assunto de estudo não encontrado.');
+
+    const session = await request(context.app).patch('/api/study/sessions/999').send({ notes: 'x' });
+    expect(session.status).toBe(404);
+    expect(session.body.error.message).toBe('Sessão de estudo não encontrada.');
+  });
+
+  it('resume o tempo de estudo respeitando os filtros', async () => {
+    const react = await request(context.app).post('/api/study/subjects').send({ name: 'React' });
+    const sql = await request(context.app).post('/api/study/subjects').send({ name: 'SQL' });
+
+    await request(context.app).post('/api/study/sessions').send({
+      subjectId: react.body.id,
+      studiedOn: '2026-04-01',
+      durationMinutes: 30,
+    });
+    await request(context.app).post('/api/study/sessions').send({
+      subjectId: sql.body.id,
+      studiedOn: '2026-04-05',
+      durationMinutes: 45,
+    });
+
+    const summary = await request(context.app).get('/api/study/summary');
+    expect(summary.body.totalMinutes).toBe(75);
+    expect(summary.body.totalSessions).toBe(2);
+    expect(summary.body.averageSessionMinutes).toBe(38);
+    expect(summary.body.subjectsCount).toBe(2);
+    expect(summary.body.bySubject).toHaveLength(2);
+
+    const filtered = await request(context.app)
+      .get('/api/study/summary')
+      .query({ subjectId: react.body.id });
+    expect(filtered.body.totalMinutes).toBe(30);
+    expect(filtered.body.totalSessions).toBe(1);
+  });
+
+  it('remove as atividades das sessões apagadas junto com o assunto', async () => {
+    const subject = await request(context.app).post('/api/study/subjects').send({ name: 'Go' });
+    await request(context.app).post('/api/study/sessions').send({
+      subjectId: subject.body.id,
+      studiedOn: '2026-04-10',
+      durationMinutes: 30,
+    });
+
+    await request(context.app).delete(`/api/study/subjects/${subject.body.id}`);
+
+    const orphanActivities = context.db
+      .prepare(`SELECT * FROM activities WHERE entity_type = 'session'`)
+      .all();
+    expect(orphanActivities).toHaveLength(0);
+  });
+
   it('remove um assunto e as sessões vinculadas', async () => {
     const subject = await request(context.app).post('/api/study/subjects').send({ name: 'Go' });
     await request(context.app).post('/api/study/sessions').send({

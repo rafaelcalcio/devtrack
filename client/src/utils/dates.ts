@@ -52,7 +52,7 @@ export function formatMonthTitle(month: string): string {
 }
 
 export function monthKey(date: Date): string {
-  return date.toISOString().slice(0, 7);
+  return toISODate(date).slice(0, 7);
 }
 
 export function shiftMonth(month: string, offset: number): string {

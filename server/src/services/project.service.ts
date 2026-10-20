@@ -192,8 +192,17 @@ export function createProjectService(db: Db) {
       }
 
       const remove = db.transaction(() => {
+        const taskRows = db.prepare(`SELECT id FROM tasks WHERE project_id = ?`).all(id) as Array<{
+          id: number;
+        }>;
+
         db.prepare(`DELETE FROM tasks WHERE project_id = ?`).run(id);
         db.prepare(`DELETE FROM projects WHERE id = ?`).run(id);
+
+        for (const task of taskRows) {
+          activity.removeForEntity('task', task.id);
+        }
+
         activity.removeForEntity('project', id);
       });
 

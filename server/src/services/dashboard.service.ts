@@ -138,7 +138,7 @@ export function createDashboardService(db: Db) {
 
     const productivityRows = db
       .prepare(
-        `SELECT substr(completed_at, 1, 10) AS date, COUNT(*) AS completed
+        `SELECT date(completed_at, 'localtime') AS date, COUNT(*) AS completed
          FROM tasks
          WHERE status = 'done' AND completed_at IS NOT NULL
          GROUP BY date

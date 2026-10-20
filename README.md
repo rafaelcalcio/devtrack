@@ -60,6 +60,7 @@ persistidos em um banco **SQLite** na sua própria máquina.
 
 - Cadastro de assuntos e tecnologias, com cor de identificação.
 - Registro de sessões de estudo com data, duração em minutos e anotações.
+- Edição de sessões já registradas (assunto, data, duração e anotações).
 - Tempo total estudado, média por sessão e gráfico de minutos por dia.
 - Histórico filtrável por assunto e por período de datas.
 
@@ -319,10 +320,12 @@ Base: `http://localhost:3333/api`
 | DELETE | `/tasks/:id`                    | Exclui uma tarefa                                      |
 | GET    | `/study/subjects`               | Lista assuntos de estudo com o tempo total             |
 | POST   | `/study/subjects`               | Cadastra um assunto                                    |
+| GET    | `/study/subjects/:id`           | Detalha um assunto                                     |
 | PATCH  | `/study/subjects/:id`           | Atualiza um assunto                                    |
 | DELETE | `/study/subjects/:id`           | Exclui um assunto e suas sessões                        |
 | GET    | `/study/sessions`               | Histórico de sessões (filtros: `subjectId`, `from`, `to`) |
 | POST   | `/study/sessions`               | Registra uma sessão                                    |
+| GET    | `/study/sessions/:id`           | Detalha uma sessão                                     |
 | PATCH  | `/study/sessions/:id`           | Atualiza uma sessão                                    |
 | DELETE | `/study/sessions/:id`           | Exclui uma sessão                                      |
 | GET    | `/study/summary`                | Totais de estudo por assunto e por dia                 |
@@ -430,18 +433,31 @@ npm run test:server   # apenas a API
 npm run test:client   # apenas a interface
 ```
 
+**184 testes no total (78 na API e 106 na interface).**
+
 A suíte do servidor sobe a aplicação Express com um banco SQLite em memória e cobre:
 
 - criação, validação, listagem, filtros, atualização e exclusão de projetos;
-- exclusão de projeto sem deixar tarefas órfãs;
+- consulta por identificador, `PUT` como alternativa ao `PATCH` e contagem de tarefas atrasadas;
+- exclusão de projeto sem deixar tarefas órfãs **e sem deixar atividades órfãs no histórico**;
 - cálculo de progresso a partir das tarefas concluídas;
 - criação, atualização, mudança de status, filtros, busca e identificação de tarefas atrasadas;
-- validação e ciclo de vida de metas (incluindo conclusão automática);
-- cadastro de assuntos, registro de sessões e totais de estudo;
-- rotas principais da API: health check, dashboard, calendário, CORS e tratamento de erros.
+- desvinculação e revinculação de tarefa a um projeto;
+- validação e ciclo de vida de metas (incluindo conclusão, reabertura e cancelamento);
+- cadastro, edição e exclusão de assuntos, registro, edição e exclusão de sessões e totais de estudo;
+- rotas principais da API: health check, dashboard, calendário, CORS (inclusive preflight) e tratamento de erros;
+- paginação de datas: a tarefa concluída é contabilizada no **dia local**, e não em UTC.
 
-Na interface são testados os utilitários de formatação e data, o cliente HTTP (sucesso, erro de
-validação e resposta `204`) e a navegação principal (links, alternância de tema e aviso de uso local).
+Na interface são testados:
+
+- todas as páginas: Dashboard, Projetos, Detalhe do Projeto, Tarefas, Kanban, Estudos, Metas,
+  Calendário, Configurações e a página 404;
+- listagem, busca com *debounce*, filtros, estados vazios, estados de erro e re-tentativa;
+- criação, edição, conclusão e exclusão de itens, com confirmação e mensagem de erro da API;
+- arrastar e soltar no Kanban e os botões de movimento acessível;
+- formulários: validação de campos obrigatórios e mensagens em pt-BR;
+- componentes: modal (Esc, fundo e botão de fechar), gráficos SVG, barra de progresso e hook `useAsync`;
+- tema claro/escuro, densidade da interface e preferências salvas no navegador.
 
 ---
 

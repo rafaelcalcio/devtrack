@@ -26,6 +26,7 @@ export function StudiesPage() {
   const [subjectFormOpen, setSubjectFormOpen] = useState(false);
   const [sessionFormOpen, setSessionFormOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<StudySubject | null>(null);
+  const [editingSession, setEditingSession] = useState<StudySession | null>(null);
   const [deletingSubject, setDeletingSubject] = useState<StudySubject | null>(null);
   const [deletingSession, setDeletingSession] = useState<StudySession | null>(null);
   const [subjectFilter, setSubjectFilter] = useState('');
@@ -81,9 +82,16 @@ export function StudiesPage() {
     setSubmitting(true);
 
     try {
-      await studyApi.createSession(toSessionInput(values));
-      showToast('Sessão de estudo registrada.');
+      if (editingSession) {
+        await studyApi.updateSession(editingSession.id, toSessionInput(values));
+        showToast('Sessão atualizada com sucesso.');
+      } else {
+        await studyApi.createSession(toSessionInput(values));
+        showToast('Sessão de estudo registrada.');
+      }
+
       setSessionFormOpen(false);
+      setEditingSession(null);
       reloadAll();
     } catch (submitError) {
       showToast(getErrorMessage(submitError), 'error');
@@ -189,13 +197,16 @@ export function StudiesPage() {
               >
                 Novo assunto
               </Button>
-              <Button
-                icon={<Plus size={16} aria-hidden="true" />}
-                onClick={() => setSessionFormOpen(true)}
-                disabled={(subjects ?? []).length === 0}
-              >
-                Registrar sessão
-              </Button>
+                <Button
+                  icon={<Plus size={16} aria-hidden="true" />}
+                  onClick={() => {
+                    setEditingSession(null);
+                    setSessionFormOpen(true);
+                  }}
+                  disabled={(subjects ?? []).length === 0}
+                >
+                  Registrar sessão
+                </Button>
             </>
           }
         />
@@ -352,21 +363,33 @@ export function StudiesPage() {
                           {session.subjectName}
                         </span>
                       </td>
-                      <td>{formatDuration(session.durationMinutes)}</td>
-      <td>{session.notes || '—'}</td>
-                      <td>
-                        <div className="table__actions">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            icon={<Trash2 size={15} aria-hidden="true" />}
-                            onClick={() => setDeletingSession(session)}
-                            aria-label="Excluir sessão"
-                          >
-                            Excluir
-                          </Button>
-                        </div>
-                      </td>
+                        <td>{formatDuration(session.durationMinutes)}</td>
+                        <td>{session.notes || '—'}</td>
+                        <td>
+                          <div className="table__actions">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon={<Pencil size={15} aria-hidden="true" />}
+                              onClick={() => {
+                                setEditingSession(session);
+                                setSessionFormOpen(true);
+                              }}
+                              aria-label={`Editar sessão de ${formatDate(session.studiedOn)}`}
+                            >
+                              Editar
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon={<Trash2 size={15} aria-hidden="true" />}
+                              onClick={() => setDeletingSession(session)}
+                              aria-label="Excluir sessão"
+                            >
+                              Excluir
+                            </Button>
+                          </div>
+                        </td>
                     </tr>
                   ))}
                 </tbody>
@@ -396,13 +419,27 @@ export function StudiesPage() {
       />
 
       <SessionForm
-        key={sessionFormOpen ? 'aberta' : 'fechada'}
+        key={`${editingSession?.id ?? 'nova'}-${sessionFormOpen ? 'aberta' : 'fechada'}`}
         open={sessionFormOpen}
-        title="Registrar sessão de estudo"
+        title={editingSession ? 'Editar sessão de estudo' : 'Registrar sessão de estudo'}
         subjects={(subjects ?? []).map((subject) => ({ id: subject.id, name: subject.name }))}
+        initialValues={
+          editingSession
+            ? {
+                subjectId: String(editingSession.subjectId),
+                studiedOn: editingSession.studiedOn,
+                durationMinutes: String(editingSession.durationMinutes),
+                notes: editingSession.notes,
+              }
+            : undefined
+        }
+        submitLabel={editingSession ? 'Salvar alterações' : 'Registrar sessão'}
         submitting={submitting}
         onSubmit={handleSessionSubmit}
-        onCancel={() => setSessionFormOpen(false)}
+        onCancel={() => {
+          setSessionFormOpen(false);
+          setEditingSession(null);
+        }}
       />
 
       <ConfirmDialog

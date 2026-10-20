@@ -94,6 +94,69 @@ describe('API de metas', () => {
     expect(professional.body[0].title).toBe('Meta concluída');
   });
 
+  it('busca uma meta pelo identificador', async () => {
+    const created = await request(context.app).post('/api/goals').send({ title: 'Meta alvo' });
+
+    const response = await request(context.app).get(`/api/goals/${created.body.id}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.title).toBe('Meta alvo');
+  });
+
+  it('retorna 404 ao buscar meta inexistente', async () => {
+    const response = await request(context.app).get('/api/goals/999');
+
+    expect(response.status).toBe(404);
+    expect(response.body.error.message).toBe('Meta não encontrada.');
+  });
+
+  it('aceita PUT como alternativa ao PATCH', async () => {
+    const created = await request(context.app).post('/api/goals').send({ title: 'Meta original' });
+
+    const response = await request(context.app)
+      .put(`/api/goals/${created.body.id}`)
+      .send({ title: 'Meta via PUT' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.title).toBe('Meta via PUT');
+  });
+
+  it('reabre uma meta concluída e limpa a data de conclusão', async () => {
+    const created = await request(context.app)
+      .post('/api/goals')
+      .send({ title: 'Meta concluída', status: 'completed' });
+
+    const response = await request(context.app)
+      .patch(`/api/goals/${created.body.id}`)
+      .send({ status: 'active' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe('active');
+    expect(response.body.completedAt).toBeNull();
+  });
+
+  it('cancela uma meta mantendo o progresso informado', async () => {
+    const created = await request(context.app).post('/api/goals').send({ title: 'Meta', progress: 40 });
+
+    const response = await request(context.app)
+      .patch(`/api/goals/${created.body.id}`)
+      .send({ status: 'cancelled' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe('cancelled');
+    expect(response.body.progress).toBe(40);
+  });
+
+  it('busca metas pelo título', async () => {
+    await request(context.app).post('/api/goals').send({ title: 'Aprender arquitetura limpa' });
+    await request(context.app).post('/api/goals').send({ title: 'Escrever testes' });
+
+    const response = await request(context.app).get('/api/goals').query({ search: 'arquitetura' });
+
+    expect(response.body).toHaveLength(1);
+    expect(response.body[0].title).toBe('Aprender arquitetura limpa');
+  });
+
   it('remove uma meta', async () => {
     const created = await request(context.app).post('/api/goals').send({ title: 'Meta' });
 

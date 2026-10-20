@@ -65,6 +65,10 @@ export const studyApi = {
     return apiRequest<StudySubject[]>('/study/subjects');
   },
 
+  getSubject(id: number): Promise<StudySubject> {
+    return apiRequest<StudySubject>(`/study/subjects/${id}`);
+  },
+
   createSubject(input: SubjectInput): Promise<StudySubject> {
     return apiRequest<StudySubject>('/study/subjects', {
       method: 'POST',
@@ -85,6 +89,10 @@ export const studyApi = {
 
   listSessions(filters: SessionFilters = {}): Promise<StudySession[]> {
     return apiRequest<StudySession[]>(`/study/sessions${buildQuery({ ...filters })}`);
+  },
+
+  getSession(id: number): Promise<StudySession> {
+    return apiRequest<StudySession>(`/study/sessions/${id}`);
   },
 
   createSession(input: SessionInput): Promise<StudySession> {

@@ -161,6 +161,91 @@ describe('API de projetos', () => {
     expect(tasksRaw).toHaveLength(1);
   });
 
+  it('busca um projeto pelo identificador', async () => {
+    const created = await request(context.app).post('/api/projects').send({ name: 'Projeto alvo' });
+
+    const response = await request(context.app).get(`/api/projects/${created.body.id}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.name).toBe('Projeto alvo');
+  });
+
+  it('retorna 404 ao buscar projeto inexistente', async () => {
+    const response = await request(context.app).get('/api/projects/999');
+
+    expect(response.status).toBe(404);
+    expect(response.body.error.message).toBe('Projeto não encontrado.');
+  });
+
+  it('aceita PUT como alternativa ao PATCH', async () => {
+    const created = await request(context.app).post('/api/projects').send({ name: 'Projeto original' });
+
+    const response = await request(context.app)
+      .put(`/api/projects/${created.body.id}`)
+      .send({ name: 'Projeto via PUT' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.name).toBe('Projeto via PUT');
+  });
+
+  it('filtra projetos por categoria', async () => {
+    await request(context.app).post('/api/projects').send({ name: 'Projeto Web', category: 'Web' });
+    await request(context.app).post('/api/projects').send({ name: 'Projeto Mobile', category: 'Mobile' });
+
+    const response = await request(context.app).get('/api/projects').query({ category: 'Web' });
+
+    expect(response.body).toHaveLength(1);
+    expect(response.body[0].name).toBe('Projeto Web');
+  });
+
+  it('conta as tarefas atrasadas do projeto', async () => {
+    const project = await request(context.app).post('/api/projects').send({ name: 'Projeto com atraso' });
+    const projectId = project.body.id;
+
+    await request(context.app)
+      .post('/api/tasks')
+      .send({ title: 'Atrasada', projectId, dueDate: '2000-01-01' });
+    await request(context.app)
+      .post('/api/tasks')
+      .send({ title: 'No prazo', projectId, dueDate: '2999-01-01' });
+    await request(context.app)
+      .post('/api/tasks')
+      .send({ title: 'Concluída', projectId, dueDate: '2000-01-01', status: 'done' });
+
+    const response = await request(context.app).get(`/api/projects/${projectId}`);
+
+    expect(response.body.totalTasks).toBe(3);
+    expect(response.body.overdueTasks).toBe(1);
+  });
+
+  it('remove as atividades das tarefas apagadas junto com o projeto', async () => {
+    const project = await request(context.app).post('/api/projects').send({ name: 'Projeto temporário' });
+    const projectId = project.body.id;
+
+    await request(context.app).post('/api/tasks').send({ title: 'Tarefa que será removida', projectId });
+
+    const before = await request(context.app).get('/api/dashboard');
+    expect(
+      before.body.recentActivities.some((activity: { title: string }) =>
+        activity.title.includes('Tarefa que será removida'),
+      ),
+    ).toBe(true);
+
+    await request(context.app).delete(`/api/projects/${projectId}`);
+
+    const after = await request(context.app).get('/api/dashboard');
+    expect(
+      after.body.recentActivities.some((activity: { title: string }) =>
+        activity.title.includes('Tarefa que será removida'),
+      ),
+    ).toBe(false);
+
+    const orphanActivities = context.db
+      .prepare(`SELECT * FROM activities WHERE entity_type = 'task'`)
+      .all();
+    expect(orphanActivities).toHaveLength(0);
+  });
+
   it('calcula o progresso do projeto a partir das tarefas concluídas', async () => {
     const project = await request(context.app).post('/api/projects').send({ name: 'Projeto com tarefas' });
     const projectId = project.body.id;

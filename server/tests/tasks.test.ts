@@ -173,6 +173,78 @@ describe('API de tarefas', () => {
     expect(filtered.body[0].title).toBe('Tarefa atrasada');
   });
 
+  it('busca uma tarefa pelo identificador', async () => {
+    const created = await request(context.app).post('/api/tasks').send({ title: 'Tarefa alvo' });
+
+    const response = await request(context.app).get(`/api/tasks/${created.body.id}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.title).toBe('Tarefa alvo');
+  });
+
+  it('retorna 404 ao buscar tarefa inexistente', async () => {
+    const response = await request(context.app).get('/api/tasks/9999');
+
+    expect(response.status).toBe(404);
+    expect(response.body.error.message).toBe('Tarefa não encontrada.');
+  });
+
+  it('aceita PUT como alternativa ao PATCH', async () => {
+    const created = await request(context.app).post('/api/tasks').send({ title: 'Tarefa original' });
+
+    const response = await request(context.app)
+      .put(`/api/tasks/${created.body.id}`)
+      .send({ title: 'Tarefa via PUT' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.title).toBe('Tarefa via PUT');
+  });
+
+  it('filtra tarefas por categoria', async () => {
+    await request(context.app).post('/api/tasks').send({ title: 'Backend', category: 'Backend' });
+    await request(context.app).post('/api/tasks').send({ title: 'Frontend', category: 'Frontend' });
+
+    const response = await request(context.app).get('/api/tasks').query({ category: 'Backend' });
+
+    expect(response.body).toHaveLength(1);
+    expect(response.body[0].title).toBe('Backend');
+  });
+
+  it('ordena as tarefas por status, prioridade e prazo', async () => {
+    await request(context.app)
+      .post('/api/tasks')
+      .send({ title: 'Urgente pendente', status: 'todo', priority: 'urgent' });
+    await request(context.app)
+      .post('/api/tasks')
+      .send({ title: 'Em andamento', status: 'in_progress', priority: 'low' });
+    await request(context.app)
+      .post('/api/tasks')
+      .send({ title: 'Concluída', status: 'done', priority: 'low' });
+
+    const response = await request(context.app).get('/api/tasks');
+
+    expect(response.body.map((task: { title: string }) => task.title)).toEqual([
+      'Em andamento',
+      'Urgente pendente',
+      'Concluída',
+    ]);
+  });
+
+  it('desvincula a tarefa do projeto quando o projeto é enviado como vazio', async () => {
+    const project = await request(context.app).post('/api/projects').send({ name: 'Projeto' });
+    const created = await request(context.app)
+      .post('/api/tasks')
+      .send({ title: 'Tarefa vinculada', projectId: project.body.id });
+
+    const response = await request(context.app)
+      .patch(`/api/tasks/${created.body.id}`)
+      .send({ projectId: null });
+
+    expect(response.status).toBe(200);
+    expect(response.body.projectId).toBeNull();
+    expect(response.body.projectName).toBeNull();
+  });
+
   it('remove uma tarefa', async () => {
     const created = await request(context.app).post('/api/tasks').send({ title: 'Temporária' });
 

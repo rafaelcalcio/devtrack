@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import type { Db } from '../db/connection.js';
+import { ApiError } from '../lib/errors.js';
 import { validate } from '../lib/validation.js';
 import {
   createStudyService,
@@ -30,6 +31,21 @@ export function createStudyRouter(db: Db): Router {
     (req, res) => {
       const input = req.valid.body as SubjectInput;
       res.status(201).json(service.createSubject(input));
+    },
+  );
+
+  router.get(
+    '/subjects/:id',
+    validate({ params: idParamSchema }),
+    (req, res) => {
+      const { id } = req.valid.params as { id: number };
+      const subject = service.getSubject(id);
+
+      if (!subject) {
+        throw ApiError.notFound('Assunto de estudo não encontrado.');
+      }
+
+      res.json(subject);
     },
   );
 
@@ -68,6 +84,21 @@ export function createStudyRouter(db: Db): Router {
     (req, res) => {
       const input = req.valid.body as SessionInput;
       res.status(201).json(service.createSession(input));
+    },
+  );
+
+  router.get(
+    '/sessions/:id',
+    validate({ params: idParamSchema }),
+    (req, res) => {
+      const { id } = req.valid.params as { id: number };
+      const session = service.getSession(id);
+
+      if (!session) {
+        throw ApiError.notFound('Sessão de estudo não encontrada.');
+      }
+
+      res.json(session);
     },
   );
 

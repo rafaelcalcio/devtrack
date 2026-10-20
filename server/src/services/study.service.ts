@@ -142,14 +142,23 @@ export function createStudyService(db: Db) {
       }
       return updated;
     },
-
     removeSubject(id: number): void {
       const existing = db.prepare(`SELECT id FROM study_subjects WHERE id = ?`).get(id);
+
       if (!existing) {
         throw ApiError.notFound('Assunto de estudo não encontrado.');
       }
 
+      const sessionRows = db
+        .prepare(`SELECT id FROM study_sessions WHERE subject_id = ?`)
+        .all(id) as Array<{ id: number }>;
+
       db.prepare(`DELETE FROM study_subjects WHERE id = ?`).run(id);
+
+      for (const session of sessionRows) {
+        activity.removeForEntity('session', session.id);
+      }
+
       activity.removeForEntity('subject', id);
     },
 
