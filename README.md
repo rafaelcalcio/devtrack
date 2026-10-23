@@ -17,6 +17,7 @@ persistidos em um banco **SQLite** na sua própria máquina.
 - [Pré-requisitos](#pré-requisitos)
 - [Instalação](#instalação)
 - [Executando o projeto](#executando-o-projeto)
+- [Implantação com Docker](#implantação-com-docker)
 - [Dados de demonstração](#dados-de-demonstração)
 - [Variáveis de ambiente](#variáveis-de-ambiente)
 - [Scripts npm](#scripts-npm)
@@ -182,6 +183,38 @@ A API sobe em `http://localhost:3333` e **serve também a interface já compilad
 
 ---
 
+## Implantação com Docker
+
+O projeto inclui um `Dockerfile` multi-estágio que compila a interface e a API, e uma imagem
+final que executa apenas a API servindo a interface já compilada.
+
+### Construir e rodar
+
+```bash
+docker compose up --build
+```
+
+A API ficará disponível em `http://localhost:3333` (mesma porta da interface).
+
+### Persistência de dados
+
+O banco SQLite é armazenado no volume `devtrack_data`, montado em `/app/server/data`, para que
+os dados não sejam perdidos quando o container for recriado.
+
+### Variáveis de ambiente
+
+Copie os exemplos e ajuste antes de subir:
+
+```bash
+cp server/.env.example server/.env
+cp client/.env.example client/.env
+```
+
+As variáveis `server/.env` são lidas pela API. No `docker-compose.yml`, valores padrão já estão
+definidos para porta, caminho do banco, CORS e seed de demonstração.
+
+---
+
 ## Dados de demonstração
 
 Para preencher a aplicação com dados de exemplo (4 projetos, 12 tarefas, 4 assuntos de estudo,
@@ -290,10 +323,18 @@ devtrack/
 │   │   ├── app.ts                # Factory da aplicação Express
 │   │   └── index.ts              # Ponto de entrada do servidor
 │   └── tests/                    # Testes de integração da API (Supertest)
+├── docs/                         # Documentação e capturas de tela
+│   └── screenshots/              # Capturas da interface (opcional)
 ├── .github/workflows/ci.yml      # Lint, tipos, testes e build automáticos
 ├── .npmrc                        # Instalação sem compilação nativa
+├── AGENTS.md                     # Instruções para agentes de IA
+├── CONTRIBUTING.md               # Diretrizes de contribuição
+├── Dockerfile                    # Imagem de produção (multi-estágio)
+├── docker-compose.yml            # Orquestração local com Docker
+├── LICENSE                       # Licença MIT
 ├── package.json                  # Workspaces e scripts da raiz
-└── README.md
+├── README.md
+└── SECURITY.md                   # Política de segurança
 ```
 
 ---
@@ -526,7 +567,8 @@ Antes de publicar, confira:
 - [ ] `npm run lint`, `npm run typecheck`, `npm test` e `npm run build` passam localmente;
 - [ ] o arquivo `LICENSE` está com o nome que você deseja publicar;
 - [ ] as capturas de tela opcionais foram adicionadas em `docs/screenshots/` e referenciadas no README;
-- [ ] nenhum arquivo `.env` ou `server/data/devtrack.db` foi adicionado (`git status` deve ignorar esses arquivos).
+- [ ] nenhum arquivo `.env` ou `server/data/devtrack.db` foi adicionado (`git status` deve ignorar esses arquivos);
+- [ ] leia o [guia de contribuição](CONTRIBUTING.md) se planeja receber colaborações externas.
 
 ---
 
@@ -534,7 +576,7 @@ Antes de publicar, confira:
 
 - **Sem autenticação:** a aplicação é de usuário único e local. Qualquer pessoa com acesso ao
   computador e ao arquivo do banco tem acesso aos dados. Não há login, senha, sessões ou
-  permissões.
+  permissões. Veja a [política de segurança](SECURITY.md) para mais detalhes.
 - **Sem sincronização:** não há multiusuário nem armazenamento em nuvem.
 - **Banco em arquivo único:** o SQLite atende bem ao uso local, mas não é adequado para gravações
   simultâneas de vários processos.

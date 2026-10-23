@@ -1,0 +1,17 @@
+services:
+  devtrack:
+    build: .
+    ports:
+      - "3333:3333"
+    environment:
+      - NODE_ENV=production
+      - PORT=3333
+      - DATABASE_PATH=data/devtrack.db
+      - CORS_ORIGIN=http://localhost:3333
+      - SEED_DEMO_DATA=false
+    volumes:
+      - devtrack_data:/app/server/data
+    restart: unless-stopped
+
+volumes:
+  devtrack_data:
