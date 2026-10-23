@@ -26,6 +26,8 @@ persistidos em um banco **SQLite** na sua própria máquina.
 - [Testes](#testes)
 - [Lint e verificação de tipos](#lint-e-verificação-de-tipos)
 - [Capturas de tela](#capturas-de-tela)
+- [Demonstração online](#demonstracao-online)
+- [Contribuindo](#contribuindo)
 - [Limitações conhecidas](#limitações-conhecidas)
 - [Licença](#licença)
 
@@ -516,20 +518,19 @@ Ambos rodam nos dois pacotes. O ESLint usa configuração flat (`eslint.config.j
 
 ## Capturas de tela
 
-O repositório ainda **não contém imagens**. Para adicionar:
+A pasta `docs/screenshots/` está pronta para receber capturas da aplicação. Para facilitar a
+avaliação por recrutadores, recomenda-se adicionar:
 
-1. Capture as telas em PNG (1440x900 para desktop, 390x844 para mobile);
-2. Salve em `docs/screenshots/` com nomes descritivos, por exemplo:
-   - `dashboard-claro.png`
-   - `dashboard-escuro.png`
-   - `projetos.png`
-   - `tarefas.png`
-   - `kanban.png`
-   - `estudos.png`
-   - `metas.png`
-   - `calendario.png`
-   - `configuracoes.png`
-3. Referencie as imagens na seção "Funcionalidades" deste README:
+- `dashboard-claro.png` e `dashboard-escuro.png` — tema claro e escuro
+- `projetos.png` — listagem e detalhes de projetos
+- `tarefas.png` — tabela de tarefas com filtros
+- `kanban.png` — quadro Kanban com arrastar e soltar
+- `estudos.png` — sessões de estudo e resumo de tempo
+- `metas.png` — metas com progresso
+- `calendario.png` — visão mensal de prazos
+- `configuracoes.png` — tema e densidade da interface
+
+Referencie as imagens na seção "Funcionalidades" deste README:
 
 ```markdown
 ![Dashboard do DevTrack](docs/screenshots/dashboard-claro.png)
@@ -537,38 +538,57 @@ O repositório ainda **não contém imagens**. Para adicionar:
 
 ---
 
-## Publicando no GitHub
+## Demonstração online
 
-O repositório já está inicializado localmente na branch `main`, com o primeiro commit criado e o
-`.gitignore`, `LICENSE`, `README.md` e o workflow de CI prontos. Falta apenas apontar para o
-repositório remoto e enviar:
+O DevTrack é uma aplicação **local, de usuário único, sem autenticação e sem sincronização em
+nuvem**. Todos os dados ficam em um arquivo SQLite na própria máquina. Isso é uma decisão de
+design válida, mas não permite que alguém simplesmente abra uma URL e experimente a aplicação.
 
-```bash
-git remote add origin https://github.com/<seu-usuario>/devtrack.git
-git push -u origin main
+Se quiser disponibilizar uma demonstração pública, as opções são:
+
+1. **Vídeo curto** mostrando os fluxos principais (criar projeto, mover tarefa no Kanban, registrar sessão de estudo, adicionar meta). Hospede no YouTube ou Vimeo e cole o link abaixo.
+2. **Deploy público** em plataformas como Render, Railway ou Fly.io, apontando o `Dockerfile` e o `docker-compose.yml` já incluídos no repositório. Como não há autenticação, recomenda-se proteger o demo com uma senha de nível de infraestrutura (por exemplo, autenticação básica do proxy reverso).
+
+Quando tiver um vídeo ou deploy, adicione o link aqui:
+
+```markdown
+- [Vídeo de demonstração](https://youtu.be/...)
+- [Deploy público (demo)](https://devtrack-demo.onrender.com)
 ```
 
-Depois do push, a aba **Actions** executa automaticamente o lint, a verificação de tipos, os testes e
-o build em cada push e em cada pull request.
+---
 
-Para começar um histórico novo (por exemplo, se preferir um único commit inicial no GitHub):
+## Contribuindo
+
+Obrigado pelo interesse em contribuir com o DevTrack! Leia o
+[guia de contribuição](CONTRIBUTING.md) para conhecer o padrão de commits (Commits Convencionais),
+o fluxo de trabalho e como executar testes e lint antes de abrir um pull request.
+
+Resumo rápido:
 
 ```bash
-rm -rf .git
-git init -b main
-git add .
-git commit -m "feat: versão inicial do DevTrack"
-git remote add origin https://github.com/<seu-usuario>/devtrack.git
-git push -u origin main
+# 1. Clone e entre no repositório
+git clone https://github.com/rafaelcalcio/devtrack.git
+cd devtrack
+
+# 2. Instale as dependências
+npm install
+
+# 3. Copie os arquivos de exemplo de ambiente
+cp server/.env.example server/.env
+cp client/.env.example client/.env
+
+# 4. Execute as verificações locais
+npm run typecheck
+npm run lint
+npm test
+npm run build
+
+# 5. Rode em desenvolvimento
+npm run dev
 ```
 
-Antes de publicar, confira:
-
-- [ ] `npm run lint`, `npm run typecheck`, `npm test` e `npm run build` passam localmente;
-- [ ] o arquivo `LICENSE` está com o nome que você deseja publicar;
-- [ ] as capturas de tela opcionais foram adicionadas em `docs/screenshots/` e referenciadas no README;
-- [ ] nenhum arquivo `.env` ou `server/data/devtrack.db` foi adicionado (`git status` deve ignorar esses arquivos);
-- [ ] leia o [guia de contribuição](CONTRIBUTING.md) se planeja receber colaborações externas.
+Mantenha commits pequenos e descritivos, com alterações reais e verificáveis.
 
 ---
 
